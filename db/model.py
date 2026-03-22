@@ -9,7 +9,7 @@ class Gender(PyEnum):
     FEMALE = "female"
 
 class User(Base):
-    __tablename__ = "authors"
+    __tablename__ = "users"
 
     id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
     name = Column(String(10), nullable=False)
