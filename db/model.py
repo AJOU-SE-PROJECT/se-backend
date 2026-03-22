@@ -43,4 +43,42 @@ class Sentence(Base):
         uselist=False
     )
 
+class SentenceLikeUserMapping(Base):
+    __tablename__ = "sentence_likes_user_mappings"
+
+    id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
+
+    user_id = Column(BIGINT, ForeignKey("users.id"))
+    sentence_id = Column(BIGINT, ForeignKey("sentences.id"))
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
+    content = Column(String, nullable=False)
+
+    user_id = Column(BIGINT, ForeignKey("users.id"))
+    sentence_id = Column(BIGINT, ForeignKey("sentences.id"))
+
+class SubComment(Base):
+    __tablename__ = "subcomments"
+
+    id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
+    content = Column(String, nullable=False)
+
+    user_id = Column(BIGINT, ForeignKey("users.id"))
+    comment_id = Column(BIGINT, ForeignKey("comments.id"))
+
+class CommentLikeUserMapping(Base):
+    __tablename__ = "comment_like_user_mappings"
+
+    id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
+    
+    user_id = Column(BIGINT, ForeignKey("users.id"))
+    comment_id = Column(BIGINT, ForeignKey("comments.id"))
+
+
+
+
+
     
