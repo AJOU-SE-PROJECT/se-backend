@@ -9,14 +9,6 @@ class Gender(PyEnum):
     FEMALE = "female"
 
 class User(Base):
-    __tablename__ = "users"
-
-    id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
-    name = Column(String(10), nullable=False)
-    gender = Column(Enum(Gender), nullable=False)
-    age = Column(Integer, nullable=False)
-
-class Author(Base):
     __tablename__ = "authors"
 
     id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)

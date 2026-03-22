@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from author.repository import PostgresqlAuthorRepository
 from author.service import AuthorService
 from db.database import Base
-from db.model import Author, Gender
+from db.model import User, Gender
 
 
 @pytest.fixture()
@@ -50,7 +50,7 @@ def test_register_author_persists_and_returns_author(service, session):
     assert created.gender == author_data["gender"]
     assert created.email == author_data["email"]
 
-    stored = session.get(Author, created.id)
+    stored = session.get(User, created.id)
     assert stored is not None
     assert stored.intro == author_data["intro"]
     assert stored.age == author_data["age"]

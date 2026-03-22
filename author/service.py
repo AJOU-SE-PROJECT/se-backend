@@ -1,4 +1,4 @@
-from db.model import Author
+from db.model import User
 from author.repository import AuthorRepository
 
 class AuthorService:
@@ -7,6 +7,6 @@ class AuthorService:
     def __init__(self, repository: AuthorRepository):
         self.repository = repository
 
-    def register_author(self, author_data: dict) -> Author:
+    def register_author(self, author_data: dict) -> User:
         """Persist a new author using the provided data."""
         return self.repository.create(author_data)
