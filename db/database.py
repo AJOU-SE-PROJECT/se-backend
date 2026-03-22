@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Use psycopg2 driver to avoid requiring the separate psycopg package.
-DATABASE_URL = "postgresql+psycopg2://postgres:1234@localhost:5432/mydb"
+DATABASE_URL = "postgresql+psycopg2://postgres:1234@localhost:5432/ajou_se_db"
 
 engine = create_engine(DATABASE_URL)
 
