@@ -18,7 +18,11 @@ class ModifySenteceResponse:
 class AddSentenceRequest:
     beforeId: int
     afterId: int
+    bookId: int
     content: str
+
+class AddSentenceResponse:
+    id: int
 
 class DeletetSenteceRequest:
     sentenceId: int

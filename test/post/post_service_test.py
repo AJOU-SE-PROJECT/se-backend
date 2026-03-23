@@ -3,9 +3,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from db.database import Base
-from db.model import Sentence
-from post.repository import PostgresqlPostRepository
-from post.schemas import ModifySentenceRequest, PostChapterCreate
+from db.model import Book, Gender, Sentence, User
+from post.repository import PostgresqlBookRepository, PostgresqlSentenceRepository
+from post.schemas import AddSentenceRequest, ModifySentenceRequest, PostChapterCreate
 from post.service import PostService
 
 
@@ -24,13 +24,18 @@ def session():
 
 
 @pytest.fixture()
-def repository(session):
-    return PostgresqlPostRepository(session)
+def sentence_repository(session):
+    return PostgresqlSentenceRepository(session)
 
 
 @pytest.fixture()
-def service(repository):
-    return PostService(repository)
+def book_repository(session):
+    return PostgresqlBookRepository(session)
+
+
+@pytest.fixture()
+def service(sentence_repository, book_repository):
+    return PostService(sentence_repository, book_repository)
 
 
 def make_post_chapter_dto(content: str) -> PostChapterCreate:
@@ -45,6 +50,15 @@ def make_post_chapter_dto(content: str) -> PostChapterCreate:
 def make_modify_sentence_dto(sentence_id: int, content: str) -> ModifySentenceRequest:
     dto = ModifySentenceRequest()
     dto.sentenceId = sentence_id
+    dto.content = content
+    return dto
+
+
+def make_add_sentence_dto(before_id: int, after_id: int, book_id: int, content: str) -> AddSentenceRequest:
+    dto = AddSentenceRequest()
+    dto.beforeId = before_id
+    dto.afterId = after_id
+    dto.bookId = book_id
     dto.content = content
     return dto
 
@@ -93,3 +107,29 @@ def test_modify_sentence_updates_content(service, session):
 
     refreshed = session.get(Sentence, sentence.id)
     assert refreshed.content == "updated sentence"
+
+
+def test_add_sentence_creates_new_sentence_and_updates_links(service, session):
+    user = User(name="Kim", gender=Gender.MALE, age=30, intro="intro", email="kim@example.com")
+    session.add(user)
+    session.commit()
+
+    book = Book(name="Book 1", author_id=user.id)
+    session.add(book)
+    session.commit()
+
+    before = Sentence(chapter=1, content="before", book_id=book.id, after_id=None)
+    after = Sentence(chapter=1, content="after", book_id=book.id, after_id=None)
+    session.add_all([before, after])
+    session.commit()
+
+    dto = make_add_sentence_dto(before.id, after.id, book.id, "inserted")
+
+    created = service.add_sentence(dto)
+
+    assert created.content == "inserted"
+    assert created.after_id == after.id
+    assert created.book_id == book.id
+
+    reloaded_before = session.get(Sentence, before.id)
+    assert reloaded_before.after_id == created.id
