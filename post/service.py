@@ -1,7 +1,8 @@
 import re
 from db.model import Sentence
+from post import repository
 from post.repository import PostRepository
-from post.schemas import PostChapterCreate
+from post.schemas import ModifySentenceRequest, PostChapterCreate
 
 
 class PostService:
@@ -37,3 +38,7 @@ class PostService:
 
         return saved_sentences
             
+    def modify_sentence(self, dto: ModifySentenceRequest) -> Sentence:
+        sentence = self.repository.find(dto.sentenceId)
+        sentence.content = dto.content
+        return self.repository.update(sentence)
