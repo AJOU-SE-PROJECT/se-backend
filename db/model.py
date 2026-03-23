@@ -25,7 +25,7 @@ class Book(Base):
     id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
     name = Column(String, nullable=False)
 
-    author_id = Column(BIGINT, ForeignKey("authors.id"))
+    author_id = Column(BIGINT, ForeignKey("users.id"))
 
 class Sentence(Base):
     __tablename__ = "sentences"
