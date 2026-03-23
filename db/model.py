@@ -1,8 +1,10 @@
-from os import name
-from sqlalchemy import BIGINT, Column, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Column, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from db.database import Base
 from enum import Enum as PyEnum
+
+
+BIGINT = BigInteger().with_variant(Integer, "sqlite")
 
 class Gender(PyEnum):
     MALE = "male"
@@ -25,13 +27,14 @@ class Book(Base):
     id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
     name = Column(String, nullable=False)
 
-    author_id = Column(BIGINT, ForeignKey("authors.id"))
+    author_id = Column(BIGINT, ForeignKey("users.id"))
 
 class Sentence(Base):
     __tablename__ = "sentences"
 
     id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
     chapter = Column(Integer, nullable=False)
+    content = Column(String, nullable=False)
 
     after_id = Column(BIGINT, ForeignKey("sentences.id"))
     book_id = Column(BIGINT, ForeignKey("books.id"))
