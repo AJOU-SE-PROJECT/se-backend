@@ -1,7 +1,7 @@
 import re
 from db.model import Sentence
 from post.repository import BookRepository, SentenceRepository
-from post.schemas import AddSentenceRequest, ModifySentenceRequest, PostChapterCreate
+from post.schemas import AddSentenceRequest, DeleteSenteceRequest, ModifySentenceRequest, PostChapterCreate
 
 
 class PostService:
@@ -64,3 +64,12 @@ class PostService:
         self.sentence_repository.update(before)
 
         return saved_sentence
+    
+    def delete_sentence(self, dto: DeleteSenteceRequest):
+        before = self.sentence_repository.find(dto.beforeId)
+        sentence = self.sentence_repository.find(dto.sentenceId)
+        before.after_id = sentence.after_id
+
+        self.sentence_repository.update(before)
+        self.sentence_repository.delete(sentence)
+

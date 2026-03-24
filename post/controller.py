@@ -13,6 +13,8 @@ from post.repository import (
 from post.schemas import (
     AddSentenceRequest,
     AddSentenceResponse,
+    DeleteSenteceRequest,
+    DeleteSentenceResponse,
     ModifySenteceResponse,
     ModifySentenceRequest,
     PostChapterCreate,
@@ -36,7 +38,9 @@ class PostController:
     
     def add(self, dto: AddSentenceRequest):
         return self.service.add_sentence(dto)
-
+    
+    def delete_sentence(self, dto: DeleteSenteceRequest):
+        self.service.delete_sentence(dto)
 
 def get_sentence_repository(db: Session = Depends(get_db)) -> SentenceRepository:
     return PostgresqlSentenceRepository(db)
@@ -68,7 +72,7 @@ def modify_sentence(
     dto: ModifySentenceRequest, controller: PostController = Depends(get_post_controller)
 ) -> ModifySenteceResponse:
     controller.modify(dto)
-    return ModifySenteceResponse(result="성공적으로 수정되었습니다.")
+    return ModifySenteceResponse(result="성공적으로 문장이 수정되었습니다.")
 
 @router.post("/sentence", response_class=AddSentenceResponse, status_code=status.HTTP_200_OK)
 def post_sentence(
@@ -76,3 +80,10 @@ def post_sentence(
 ) -> AddSentenceResponse:
     result = controller.add(dto)
     return AddSentenceResponse(id = result.id)
+
+@router.delete("/sentence", response_class=DeleteSentenceResponse, status_code=status.HTTP_200_OK)
+def delete_sentence(
+    dto: DeleteSenteceRequest, controller: PostController = Depends(get_post_controller)
+) -> DeleteSentenceResponse:
+    controller.delete_sentence(dto)
+    return DeleteSentenceResponse(result = "성공적으로 문장이 삭제되었습니다.")

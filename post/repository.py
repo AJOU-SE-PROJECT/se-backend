@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from db.model import Book, Sentence, User
@@ -19,6 +20,10 @@ class SentenceRepository(ABC):
     @abstractmethod
     def update(self, sentence: Sentence) -> Sentence:
         """해당 엔티티를 업데이트하는 함수"""
+
+    @abstractmethod
+    def delete(self, sentence: Sentence):
+        """해당 엔티티를 삭제하는 함수"""
     
 class BookRepository(ABC):
     @abstractmethod
@@ -46,6 +51,10 @@ class PostgresqlSentenceRepository(SentenceRepository):
         self.session.commit()
         self.session.refresh(sentence)
         return sentence
+    
+    def delete(self, sentence: Sentence):
+        self.session.delete(sentence)
+        self.session.commit()
 
 class PostgresqlBookRepository(BookRepository):
     def __init__(self, session: Session):

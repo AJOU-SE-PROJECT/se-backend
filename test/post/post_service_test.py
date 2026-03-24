@@ -5,7 +5,12 @@ from sqlalchemy.orm import sessionmaker
 from db.database import Base
 from db.model import Book, Gender, Sentence, User
 from post.repository import PostgresqlBookRepository, PostgresqlSentenceRepository
-from post.schemas import AddSentenceRequest, ModifySentenceRequest, PostChapterCreate
+from post.schemas import (
+    AddSentenceRequest,
+    DeleteSenteceRequest,
+    ModifySentenceRequest,
+    PostChapterCreate,
+)
 from post.service import PostService
 
 
@@ -60,6 +65,13 @@ def make_add_sentence_dto(before_id: int, after_id: int, book_id: int, content: 
     dto.afterId = after_id
     dto.bookId = book_id
     dto.content = content
+    return dto
+
+
+def make_delete_sentence_dto(before_id: int, sentence_id: int) -> DeleteSenteceRequest:
+    dto = DeleteSenteceRequest()
+    dto.beforeId = before_id
+    dto.sentenceId = sentence_id
     return dto
 
 
@@ -133,3 +145,33 @@ def test_add_sentence_creates_new_sentence_and_updates_links(service, session):
 
     reloaded_before = session.get(Sentence, before.id)
     assert reloaded_before.after_id == created.id
+
+
+def test_delete_sentence_unlinks_before_and_removes_sentence(service, session):
+    user = User(name="Han", gender=Gender.FEMALE, age=28, intro="intro", email="han@example.com")
+    session.add(user)
+    session.commit()
+
+    book = Book(name="Mystery", author_id=user.id)
+    session.add(book)
+    session.commit()
+
+    before = Sentence(chapter=1, content="before", book_id=book.id)
+    target = Sentence(chapter=1, content="delete me", book_id=book.id)
+    after = Sentence(chapter=1, content="after", book_id=book.id)
+    session.add_all([before, target, after])
+    session.commit()
+
+    before.after_id = target.id
+    target.after_id = after.id
+    session.add_all([before, target])
+    session.commit()
+
+    dto = make_delete_sentence_dto(before.id, target.id)
+
+    service.delete_sentence(dto)
+
+    refreshed_before = session.get(Sentence, before.id)
+    assert refreshed_before.after_id == after.id
+
+    assert session.get(Sentence, target.id) is None

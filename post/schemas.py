@@ -24,5 +24,9 @@ class AddSentenceRequest:
 class AddSentenceResponse:
     id: int
 
-class DeletetSenteceRequest:
+class DeleteSenteceRequest:
     sentenceId: int
+    beforeId: int
+
+class DeleteSentenceResponse:
+    result: str
