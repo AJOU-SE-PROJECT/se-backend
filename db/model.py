@@ -72,13 +72,12 @@ class SubComment(Base):
     user_id = Column(BIGINT, ForeignKey("users.id"))
     comment_id = Column(BIGINT, ForeignKey("comments.id"))
 
-class CommentLikeUserMapping(Base):
+class CommentLikeUserMap(Base):
     __tablename__ = "comment_like_user_mappings"
 
-    id= Column(BIGINT, primary_key=True, autoincrement=True, index=True)
-    
-    user_id = Column(BIGINT, ForeignKey("users.id"))
-    comment_id = Column(BIGINT, ForeignKey("comments.id"))
+    comment_id = Column(BIGINT, ForeignKey("comments.id"), primary_key=True)
+    user_id = Column(BIGINT, ForeignKey("users.id"), primary_key=True)
+
 
 
 

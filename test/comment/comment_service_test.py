@@ -51,7 +51,6 @@ def client(session):
 @pytest.fixture()
 def setup_data(session):
     """Create temporary User, Book, and Sentence for testing."""
-    # ✨ 가짜 DB가 멍청해지지 않도록 직접 1번을 부여!
     user = User(
         id=1, 
         name="Test User",
@@ -69,7 +68,7 @@ def setup_data(session):
     session.commit()
     session.refresh(book)
 
-    sentence = Sentence(id=1, chapter=1, book_id=book.id)
+    sentence = Sentence(id=1, chapter=1, book_id=book.id, content="Test sentence")
     session.add(sentence)
     session.commit()
     session.refresh(sentence)
@@ -137,4 +136,47 @@ def test_create_comment_nonexistent_sentence(client, setup_data):
 
     response = client.post(f"/sentences/{nonexistent_sentence_id}/comments", json=comment_data)
 
+    assert response.status_code == 404
+
+def test_create_subcomment_success(client, setup_data):
+    """시나리오 E: 존재하는 댓글에 대댓글 작성 -> 201 Created 검증"""
+    sentence_id = setup_data["sentence"].id
+    
+    res_comment = client.post(f"/sentences/{sentence_id}/comments", json={"content": "부모 댓글입니다."})
+    comment_id = res_comment.json()["id"]
+
+    subcomment_data = {"content": "대댓글입니다."}
+    res_sub = client.post(f"/comments/{comment_id}/subcomments", json=subcomment_data)
+    
+    assert res_sub.status_code == 201
+    assert res_sub.json()["content"] == subcomment_data["content"]
+    assert res_sub.json()["comment_id"] == comment_id
+
+def test_toggle_like_success(client, setup_data):
+    """시나리오 F: 좋아요 누르기/취소 토글 및 댓글 조회 시 like_count 반영 검증"""
+    sentence_id = setup_data["sentence"].id
+    
+    res_comment = client.post(f"/sentences/{sentence_id}/comments", json={"content": "좋아요 테스트 댓글"})
+    comment_id = res_comment.json()["id"]
+
+    res_like1 = client.post(f"/comments/{comment_id}/likes")
+    assert res_like1.status_code == 200
+    assert res_like1.json()["liked"] is True
+
+    res_list1 = client.get(f"/sentences/{sentence_id}/comments")
+    assert res_list1.json()[0]["like_count"] == 1
+
+    res_like2 = client.post(f"/comments/{comment_id}/likes")
+    assert res_like2.status_code == 200
+    assert res_like2.json()["liked"] is False
+
+    res_list2 = client.get(f"/sentences/{sentence_id}/comments")
+    assert res_list2.json()[0]["like_count"] == 0
+
+def test_subcomment_not_found(client, setup_data):
+    """시나리오 G: 존재하지 않는 댓글에 대댓글 작성 -> 404 Not Found 검증"""
+    nonexistent_comment_id = 9999
+    subcomment_data = {"content": "실패해야 하는 대댓글"}
+    
+    response = client.post(f"/comments/{nonexistent_comment_id}/subcomments", json=subcomment_data)
     assert response.status_code == 404
