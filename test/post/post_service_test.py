@@ -3,9 +3,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from db.database import Base
-from db.model import Sentence
-from post.repository import PostgresqlPostRepository
-from post.schemas import PostChapterCreate
+from db.model import Book, Gender, Sentence, User
+from post.repository import PostgresqlBookRepository, PostgresqlSentenceRepository
+from post.schemas import (
+    AddSentenceRequest,
+    DeleteSenteceRequest,
+    ModifySentenceRequest,
+    PostChapterCreate,
+)
 from post.service import PostService
 
 
@@ -24,13 +29,18 @@ def session():
 
 
 @pytest.fixture()
-def repository(session):
-    return PostgresqlPostRepository(session)
+def sentence_repository(session):
+    return PostgresqlSentenceRepository(session)
 
 
 @pytest.fixture()
-def service(repository):
-    return PostService(repository)
+def book_repository(session):
+    return PostgresqlBookRepository(session)
+
+
+@pytest.fixture()
+def service(sentence_repository, book_repository):
+    return PostService(sentence_repository, book_repository)
 
 
 def make_post_chapter_dto(content: str) -> PostChapterCreate:
@@ -39,6 +49,29 @@ def make_post_chapter_dto(content: str) -> PostChapterCreate:
     dto.content = content
     dto.bookId = 42
     dto.chapter = 3
+    return dto
+
+
+def make_modify_sentence_dto(sentence_id: int, content: str) -> ModifySentenceRequest:
+    dto = ModifySentenceRequest()
+    dto.sentenceId = sentence_id
+    dto.content = content
+    return dto
+
+
+def make_add_sentence_dto(before_id: int, after_id: int, book_id: int, content: str) -> AddSentenceRequest:
+    dto = AddSentenceRequest()
+    dto.beforeId = before_id
+    dto.afterId = after_id
+    dto.bookId = book_id
+    dto.content = content
+    return dto
+
+
+def make_delete_sentence_dto(before_id: int, sentence_id: int) -> DeleteSenteceRequest:
+    dto = DeleteSenteceRequest()
+    dto.beforeId = before_id
+    dto.sentenceId = sentence_id
     return dto
 
 
@@ -70,3 +103,75 @@ def test_post_sentences_links_after_ids(service, session):
     assert stored[0].after_id == stored[1].id
     assert stored[1].after_id == stored[2].id
     assert stored[2].after_id is None
+
+
+def test_modify_sentence_updates_content(service, session):
+    sentence = Sentence(chapter=1, content="original", book_id=5)
+    session.add(sentence)
+    session.commit()
+
+    dto = make_modify_sentence_dto(sentence.id, "updated sentence")
+
+    updated = service.modify_sentence(dto)
+
+    assert updated.id == sentence.id
+    assert updated.content == "updated sentence"
+
+    refreshed = session.get(Sentence, sentence.id)
+    assert refreshed.content == "updated sentence"
+
+
+def test_add_sentence_creates_new_sentence_and_updates_links(service, session):
+    user = User(name="Kim", gender=Gender.MALE, age=30, intro="intro", email="kim@example.com")
+    session.add(user)
+    session.commit()
+
+    book = Book(name="Book 1", author_id=user.id)
+    session.add(book)
+    session.commit()
+
+    before = Sentence(chapter=1, content="before", book_id=book.id, after_id=None)
+    after = Sentence(chapter=1, content="after", book_id=book.id, after_id=None)
+    session.add_all([before, after])
+    session.commit()
+
+    dto = make_add_sentence_dto(before.id, after.id, book.id, "inserted")
+
+    created = service.add_sentence(dto)
+
+    assert created.content == "inserted"
+    assert created.after_id == after.id
+    assert created.book_id == book.id
+
+    reloaded_before = session.get(Sentence, before.id)
+    assert reloaded_before.after_id == created.id
+
+
+def test_delete_sentence_unlinks_before_and_removes_sentence(service, session):
+    user = User(name="Han", gender=Gender.FEMALE, age=28, intro="intro", email="han@example.com")
+    session.add(user)
+    session.commit()
+
+    book = Book(name="Mystery", author_id=user.id)
+    session.add(book)
+    session.commit()
+
+    before = Sentence(chapter=1, content="before", book_id=book.id)
+    target = Sentence(chapter=1, content="delete me", book_id=book.id)
+    after = Sentence(chapter=1, content="after", book_id=book.id)
+    session.add_all([before, target, after])
+    session.commit()
+
+    before.after_id = target.id
+    target.after_id = after.id
+    session.add_all([before, target])
+    session.commit()
+
+    dto = make_delete_sentence_dto(before.id, target.id)
+
+    service.delete_sentence(dto)
+
+    refreshed_before = session.get(Sentence, before.id)
+    assert refreshed_before.after_id == after.id
+
+    assert session.get(Sentence, target.id) is None
