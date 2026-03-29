@@ -11,6 +11,10 @@ class CommentRepository(ABC):
     """Repository interface describing comment persistence behavior."""
 
     @abstractmethod
+    def find(self, comment_id: int) -> Comment:
+        "id로 comment를 조회한다."
+
+    @abstractmethod
     def create(self, comment_data: dict) -> Comment:
         """Persist a new comment and return the stored entity."""
 
@@ -41,6 +45,9 @@ class PostgresqlCommentRepository(CommentRepository):
     def __init__(self, session: Session):
         self.session = session
 
+    def find(self, comment_id: int):
+        return self.session.get(Comment, comment_id)
+
     def create(self, comment_data: dict) -> Comment:
         comment = Comment(**comment_data)
         self.session.add(comment)
@@ -60,7 +67,7 @@ class PostgresqlCommentRepository(CommentRepository):
         return (
             self.session.query(Comment)
             .filter(Comment.sentence_id == sentence_id)
-            .order_by(Comment.id.desc())
+            .order_by(Comment.like_count.desc())
             .all()
         )
 
@@ -83,7 +90,7 @@ class PostgresqlCommentRepository(CommentRepository):
         return (
             self.session.query(SubComment)
             .filter(SubComment.comment_id == comment_id)
-            .order_by(SubComment.id.asc())
+            .order_by(SubComment.created_at.asc())
             .all()
         )
 
@@ -101,6 +108,10 @@ class PostgresqlCommentRepository(CommentRepository):
             self.session.delete(mapping)
             self.session.commit()
             return False
+        
+        comment = self.find(comment_id)
+        comment.like_count = comment.like_count + 1
+        self.session.add(comment)
 
         new_mapping = CommentLikeUserMap(comment_id=comment_id, user_id=user_id)
         self.session.add(new_mapping)
@@ -116,8 +127,4 @@ class PostgresqlCommentRepository(CommentRepository):
             )
 
     def count_likes(self, comment_id: int) -> int:
-        return (
-            self.session.query(CommentLikeUserMap)
-            .filter(CommentLikeUserMap.comment_id == comment_id)
-            .count()
-        )
+        return self.find(comment_id).like_count
